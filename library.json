@@ -28,8 +28,8 @@
       "version": "~6.11.4"
     },
     {
-      "name": "espMqttClient",
-      "version": "^1.6.0"
+      "name": "AsyncMqttClient-stedon81",
+      "version": "^0.8.0"
     },
     {
       "name": "Bounce2",
