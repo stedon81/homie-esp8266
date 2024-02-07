@@ -23,20 +23,22 @@
     "espressif32"
   ],
   "dependencies": [
-    {
+    {      
       "name": "ArduinoJson",
       "version": "~6.11.4"
     },
     {
-      "name": "AsyncMqttClient-stedon81",
-      "version": "^0.8.0"
+      "owner": "ottowinter",
+      "name": "AsyncMqttClient-esphome",
+      "version": "^0.8.6"
     },
     {
       "name": "Bounce2",
       "version": "^2.1.0"
     },
     {
-      "name": "ESP Async WebServer"
+      "owner": "ottowinter",
+      "name": "ESPAsyncWebServer-esphome"
     }
   ],
   "export": {
