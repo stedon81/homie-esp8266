@@ -25,7 +25,7 @@
 #endif // ESP32
 
 
-#include <AsyncMqttClient.h>
+#include <PangolinMQTT.h>
 #include "../../HomieNode.hpp"
 #include "../../HomieRange.hpp"
 #include "../../StreamingOperator.hpp"
@@ -140,8 +140,8 @@ class BootNormal : public Boot {
   void _mqttConnect();
   void _advertise();
   void _onMqttConnected();
-  void _onMqttDisconnected(AsyncMqttClientDisconnectReason reason);
-  void _onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total);
+  void _onMqttDisconnected(uint8_t reason);
+  void _onMqttMessage(const char* topic, uint8_t* payload, PANGO_PROPS_t properties, size_t len, size_t index, size_t total);
   void _onMqttPublish(uint16_t id);
   void _prefixMqttTopic();
   char* _prefixMqttTopic(PGM_P topic);
@@ -150,11 +150,11 @@ class BootNormal : public Boot {
 
   // _onMqttMessage Helpers
   void __splitTopic(char* topic);
-  bool __fillPayloadBuffer(char* topic, char* payload, const AsyncMqttClientMessageProperties& properties, size_t len, size_t index, size_t total);
-  bool __handleOTAUpdates(char* topic, char* payload, const AsyncMqttClientMessageProperties& properties, size_t len, size_t index, size_t total);
-  bool __handleBroadcasts(char* topic, char* payload, const AsyncMqttClientMessageProperties& properties, size_t len, size_t index, size_t total);
-  bool __handleResets(char* topic, char* payload, const AsyncMqttClientMessageProperties& properties, size_t len, size_t index, size_t total);
-  bool __handleConfig(char* topic, char* payload, const AsyncMqttClientMessageProperties& properties, size_t len, size_t index, size_t total);
-  bool __handleNodeProperty(char* topic, char* payload, const AsyncMqttClientMessageProperties& properties, size_t len, size_t index, size_t total);
+  bool __fillPayloadBuffer(char* topic, char* payload, size_t len, size_t index, size_t total);
+  bool __handleOTAUpdates(char* topic, char* payload, size_t len, size_t index, size_t total);
+  bool __handleBroadcasts(char* topic, char* payload, size_t len, size_t index, size_t total);
+  bool __handleResets(char* topic, char* payload, size_t len, size_t index, size_t total);
+  bool __handleConfig(char* topic, char* payload, size_t len, size_t index, size_t total);
+  bool __handleNodeProperty(char* topic, char* payload, size_t len, size_t index, size_t total);
 };
 }  // namespace HomieInternals

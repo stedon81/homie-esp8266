@@ -1,6 +1,6 @@
 #pragma once
 
-#include <AsyncMqttClient.h>
+#include <PangolinMQTT.h>
 #include "../Logger.hpp"
 #include "../Blinker.hpp"
 #include "../Constants.hpp"
@@ -70,14 +70,14 @@ class InterfaceData {
   Logger& getLogger() { return *_logger; }
   Blinker& getBlinker() { return *_blinker; }
   Config& getConfig() { return *_config; }
-  AsyncMqttClient& getMqttClient() { return *_mqttClient; }
+  PangolinMQTT& getMqttClient() { return *_mqttClient; }
   SendingPromise& getSendingPromise() { return *_sendingPromise; }
 
  private:
   Logger* _logger;
   Blinker* _blinker;
   Config* _config;
-  AsyncMqttClient* _mqttClient;
+  PangolinMQTT* _mqttClient;
   SendingPromise* _sendingPromise;
 };
 
