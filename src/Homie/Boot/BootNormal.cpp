@@ -407,6 +407,7 @@ void BootNormal::_mqttConnect() {
 }
 
 void BootNormal::_advertise() {
+  Serial.print("adv-yield...");yield();Serial.print("adv-delay...");delay(50);Serial.println("adv-yield.");yield();
   uint16_t packetId;
   switch (_advertisementProgress.globalStep) {
     case AdvertisementProgress::GlobalStep::PUB_INIT:
