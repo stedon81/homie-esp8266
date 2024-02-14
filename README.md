@@ -6,7 +6,7 @@
 
 An Arduino for ESP8266 / ESP32 implementation of [Homie](https://github.com/homieiot/convention), an MQTT convention for the IoT.
 
-This branch of Homie for ESP8266 implements [Homie 3.0.1](https://github.com/homieiot/convention/releases/tag/v3.0.1) and is a port of the [original library](https://github.com/homieiot/homie-esp8266) to use espMqttClient instead of AsyncMqttClient.
+This branch of Homie for ESP8266 implements [Homie 3.0.1](https://github.com/homieiot/convention/releases/tag/v3.0.1) and is a port of the [original library](https://github.com/homieiot/homie-esp8266) to use espMqttClientAsync from bertmelis instead of AsyncMqttClient.
 
 The reason for this port is that AsyncMqttClient and the underlying ESPAsyncTCP library have been found to be very unreliable
 in case of frequent and overlapping asynchronous message transfers.

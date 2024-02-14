@@ -62,11 +62,11 @@ uint16_t SendingPromise::send(const String& value) {
   strcat_P(topic, PSTR("/"));
   strcat(topic, _property->c_str());
 
-  uint16_t packetId = Interface::get().getMqttClient().publish(topic, _qos, _retained, (uint8_t*) value.c_str(), value.length()+1, false);
+  uint16_t packetId = Interface::get().getMqttClient().publish(topic, _qos, _retained, value.c_str());
 
   if (_overwriteSetter) {
     strcat_P(topic, PSTR("/set"));
-    Interface::get().getMqttClient().publish(topic, 1, true, (uint8_t*) value.c_str(), value.length()+1, false);
+    Interface::get().getMqttClient().publish(topic, 1, true, value.c_str());
   }
 
   delete[] topic;

@@ -2,7 +2,7 @@
 
 #include "Arduino.h"
 
-#include "PangolinMQTT.h"
+#include <espMqttClientAsync.h>
 #include "Homie/Datatypes/Interface.hpp"
 #include "Homie/Constants.hpp"
 #include "Homie/Limits.hpp"
@@ -62,7 +62,7 @@ class HomieClass {
   static bool isConfigured();
   static bool isConnected();
   static const ConfigStruct& getConfiguration();
-  PangolinMQTT& getMqttClient();
+  espMqttClientAsync& getMqttClient();
   Logger& getLogger();
   static void prepareToSleep();
   #ifdef ESP32
@@ -87,7 +87,7 @@ class HomieClass {
   Logger _logger;
   Blinker _blinker;
   Config _config;
-  PangolinMQTT _mqttClient;
+  espMqttClientAsync _mqttClient;
 
   void _checkBeforeSetup(const __FlashStringHelper* functionName) const;
 

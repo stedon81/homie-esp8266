@@ -349,7 +349,7 @@ const ConfigStruct& HomieClass::getConfiguration() {
   return Interface::get().getConfig().get();
 }
 
-PangolinMQTT& HomieClass::getMqttClient() {
+espMqttClientAsync& HomieClass::getMqttClient() {
   return _mqttClient;
 }
 

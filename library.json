@@ -33,7 +33,12 @@
     },
     {
       "owner": "ottowinter",
-      "name": "ESPAsyncWebServer"
+      "name": "ESPAsyncWebServer-esphome"
+    },
+    {
+      "owner": "bertmelis",
+      "name": "espMqttClient",
+      "version": "^1.6.0"
     }
   ],
   "export": {

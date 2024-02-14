@@ -25,7 +25,7 @@
 #endif // ESP32
 
 
-#include <PangolinMQTT.h>
+#include <espMqttClientAsync.h>
 #include "../../HomieNode.hpp"
 #include "../../HomieRange.hpp"
 #include "../../StreamingOperator.hpp"
@@ -140,8 +140,8 @@ class BootNormal : public Boot {
   void _mqttConnect();
   void _advertise();
   void _onMqttConnected();
-  void _onMqttDisconnected(uint8_t reason);
-  void _onMqttMessage(const char* topic, uint8_t* payload, PANGO_PROPS_t properties, size_t len, size_t index, size_t total);
+  void _onMqttDisconnected(espMqttClientTypes::DisconnectReason reason);
+  void _onMqttMessage(const espMqttClientTypes::MessageProperties& properties, const char* topic, const uint8_t* payload, size_t len, size_t index, size_t total);
   void _onMqttPublish(uint16_t id);
   void _prefixMqttTopic();
   char* _prefixMqttTopic(PGM_P topic);
