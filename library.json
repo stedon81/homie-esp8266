@@ -38,7 +38,13 @@
     {
       "owner": "bertmelis",
       "name": "espMqttClient",
-      "version": "^1.6.0"
+      "version": "^1.6.0",
+      "platforms": ["espressif8266"]
+    },
+    {
+      "name": "espMqttClient",
+      "version": "https://github.com/stedon81/espMqttClient#main",
+      "platforms": ["espressif32"]
     }
   ],
   "export": {
