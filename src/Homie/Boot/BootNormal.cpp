@@ -60,8 +60,8 @@ void BootNormal::setup() {
   _mqttTopic = std::unique_ptr<char[]>(new char[baseTopicLength + longestSubtopicLength]);
 
   #ifdef ESP32
-  _wifiGotIpHandler = WiFi.onEvent(std::bind(&BootNormal::_onWifiGotIp, this, std::placeholders::_1, std::placeholders::_2), WiFiEvent_t::SYSTEM_EVENT_STA_GOT_IP);
-  _wifiDisconnectedHandler = WiFi.onEvent(std::bind(&BootNormal::_onWifiDisconnected, this, std::placeholders::_1, std::placeholders::_2), WiFiEvent_t::SYSTEM_EVENT_STA_DISCONNECTED);
+  _wifiGotIpHandler = WiFi.onEvent(std::bind(&BootNormal::_onWifiGotIp, this, std::placeholders::_1, std::placeholders::_2), WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_GOT_IP);
+  _wifiDisconnectedHandler = WiFi.onEvent(std::bind(&BootNormal::_onWifiDisconnected, this, std::placeholders::_1, std::placeholders::_2), WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
   #elif defined(ESP8266)
   _wifiGotIpHandler = WiFi.onStationModeGotIP(std::bind(&BootNormal::_onWifiGotIp, this, std::placeholders::_1));
   _wifiDisconnectedHandler = WiFi.onStationModeDisconnected(std::bind(&BootNormal::_onWifiDisconnected, this, std::placeholders::_1));
@@ -185,6 +185,15 @@ void BootNormal::loop() {
     Interface::get().getLogger() << F("  • Wi-Fi signal quality: ") << qualityStr << F("%") << endl;
     uint16_t signalPacketId = Interface::get().getMqttClient().publish(_prefixMqttTopic(PSTR("/$stats/signal")), 1, true, qualityStr);
 
+    uint8_t channel = WiFi.channel();
+    char channelStr[3 + 1];
+    itoa(channel, channelStr, 10);
+    Interface::get().getLogger() << F("  • Wi-Fi AP channel: ") << channelStr << endl;
+    uint16_t channelPacketId = Interface::get().getMqttClient().publish(_prefixMqttTopic(PSTR("/$stats/channel")), 1, true, channelStr);
+
+    Interface::get().getLogger() << F("  • Wi-Fi AP BSSID: ") << WiFi.BSSIDstr() << endl;
+    uint16_t bssiPacketId = Interface::get().getMqttClient().publish(_prefixMqttTopic(PSTR("/$stats/bssid")), 1, true, WiFi.BSSIDstr().c_str());
+
     _uptime.update();
     char uptimeStr[20 + 1];
     itoa(_uptime.getSeconds(), uptimeStr, 10);
@@ -284,16 +293,18 @@ void BootNormal::_endOtaUpdate(bool success, uint8_t update_error) {
 
 void BootNormal::_wifiConnect() {
   if (!Interface::get().disable) {
+    WiFi.disconnect(true, true);
     if (Interface::get().led.enabled) Interface::get().getBlinker().start(LED_WIFI_DELAY);
     Interface::get().getLogger() << F("↕ Attempting to connect to Wi-Fi...") << endl;
-
-    if (WiFi.getMode() != WIFI_STA) WiFi.mode(WIFI_STA);
 
     #ifdef ESP32
     WiFi.setHostname(Interface::get().getConfig().get().deviceId);
     #elif defined(ESP8266)
     WiFi.hostname(Interface::get().getConfig().get().deviceId);
     #endif // ESP32
+
+    if (WiFi.getMode() != WIFI_STA) WiFi.mode(WIFI_STA);
+
     if (strcmp_P(Interface::get().getConfig().get().wifi.ip, PSTR("")) != 0) {  // on _validateConfigWifi there is a requirement for mask and gateway
       IPAddress convertedIp;
       convertedIp.fromString(Interface::get().getConfig().get().wifi.ip);
@@ -322,6 +333,9 @@ void BootNormal::_wifiConnect() {
       Helpers::stringToBytes(Interface::get().getConfig().get().wifi.bssid, ':', bssidBytes, 6, 16);
       WiFi.begin(Interface::get().getConfig().get().wifi.ssid, Interface::get().getConfig().get().wifi.password, Interface::get().getConfig().get().wifi.channel, bssidBytes);
     } else {
+      Interface::get().getLogger() << F("↕ Connect to Wi-Fi using full scan mode...") << endl;
+      WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
+      WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
       WiFi.begin(Interface::get().getConfig().get().wifi.ssid, Interface::get().getConfig().get().wifi.password);
     }
 
@@ -369,17 +383,18 @@ void BootNormal::_onWifiGotIp(const WiFiEventStationModeGotIP& event) {
 }
 #endif // ESP32
 
+
 #ifdef ESP32
 void BootNormal::_onWifiDisconnected(WiFiEvent_t event, WiFiEventInfo_t info) {
   Interface::get().ready = false;
   if (Interface::get().led.enabled) Interface::get().getBlinker().start(LED_WIFI_DELAY);
   _statsTimer.deactivate();
-  Interface::get().getLogger() << F("✖ Wi-Fi disconnected, reason: ") << info.disconnected.reason << endl;
+  Interface::get().getLogger() << F("✖ Wi-Fi disconnected, reason: ") << info.wifi_sta_disconnected.reason << endl;
   Interface::get().getLogger() << F("Triggering WIFI_DISCONNECTED event...") << endl;
   Interface::get().event.type = HomieEventType::WIFI_DISCONNECTED;
-  Interface::get().event.wifiReason = info.disconnected.reason;
+  Interface::get().event.wifiReason = info.wifi_sta_disconnected.reason;
   Interface::get().eventHandler(Interface::get().event);
-
+  
   _wifiConnect();
 }
 #elif defined(ESP8266)
@@ -399,6 +414,10 @@ void BootNormal::_onWifiDisconnected(const WiFiEventStationModeDisconnected& eve
 
 void BootNormal::_mqttConnect() {
   if (!Interface::get().disable) {
+    if (!WiFi.isConnected()) {
+      Interface::get().getLogger() << F("↕ Not re-connecting to MQTT, waiting for WiFi...") << endl;  
+      return;
+    }
     if (Interface::get().led.enabled) Interface::get().getBlinker().start(LED_MQTT_DELAY);
     _mqttConnectNotified = false;
     Interface::get().getLogger() << F("↕ Attempting to connect to MQTT...") << endl;
