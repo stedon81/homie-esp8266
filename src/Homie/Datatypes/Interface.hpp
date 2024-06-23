@@ -46,6 +46,11 @@ class InterfaceData {
     uint8_t on;
   } led;
 
+  struct ConnectionCacheUsage {
+    bool doCache;
+    bool useCache;
+  } cache;
+
   struct Reset {
     bool enabled;
     bool idle;

@@ -308,7 +308,19 @@ void BootNormal::_wifiConnect() {
 
     if (WiFi.getMode() != WIFI_STA) WiFi.mode(WIFI_STA);
 
-    if (strcmp_P(Interface::get().getConfig().get().wifi.ip, PSTR("")) != 0) {  // on _validateConfigWifi there is a requirement for mask and gateway
+    bool connectToSpecificBSSID = false;
+    byte bssidBytes[6];
+    uint16_t channel;
+
+    if (strcmp_P(Interface::get().getConfig().get().wifi.bssid, PSTR("")) != 0) {
+      Helpers::stringToBytes(Interface::get().getConfig().get().wifi.bssid, ':', bssidBytes, 6, 16);
+      channel = Interface::get().getConfig().get().wifi.channel;
+      connectToSpecificBSSID = true;
+    }
+
+    if (strcmp_P(Interface::get().getConfig().get().wifi.ip, PSTR("")) != 0) {  
+      // on _validateConfigWifi there is a requirement for mask and gateway, so checking for ip configured is enough
+      Interface::get().getLogger() << F("↕ using static IP config...") << endl;
       IPAddress convertedIp;
       convertedIp.fromString(Interface::get().getConfig().get().wifi.ip);
       IPAddress convertedMask;
@@ -329,12 +341,34 @@ void BootNormal::_wifiConnect() {
       } else {
         WiFi.config(convertedIp, convertedGateway, convertedMask);
       }
+    } else {
+      if (Interface::get().cache.useCache && strcmp_P(Interface::get().getConfig().get().connectioncache.ip, PSTR("")) != 0) { // on _validateConfigCache there is a requirement to have all details specified if any     
+        Interface::get().getLogger() << F("↕ using cached IP config...") << endl;
+        IPAddress convertedIp;
+        convertedIp.fromString(Interface::get().getConfig().get().connectioncache.ip);
+        IPAddress convertedMask;
+        convertedMask.fromString(Interface::get().getConfig().get().connectioncache.mask);
+        IPAddress convertedGateway;
+        convertedGateway.fromString(Interface::get().getConfig().get().connectioncache.gw);
+
+        if (strcmp_P(Interface::get().getConfig().get().connectioncache.dns1, PSTR("")) != 0) {
+          IPAddress convertedDns1;
+          convertedDns1.fromString(Interface::get().getConfig().get().connectioncache.dns1);
+          WiFi.config(convertedIp, convertedGateway, convertedMask, convertedDns1);
+        } else {
+          WiFi.config(convertedIp, convertedGateway, convertedMask);
+        }
+        if (!connectToSpecificBSSID) { // don't overwrite settings in wifi section of config
+          Helpers::stringToBytes(Interface::get().getConfig().get().connectioncache.bssid, ':', bssidBytes, 6, 16);
+          channel = Interface::get().getConfig().get().connectioncache.channel;
+          connectToSpecificBSSID = true;
+        }
+      }
     }
 
-    if (strcmp_P(Interface::get().getConfig().get().wifi.bssid, PSTR("")) != 0) {
-      byte bssidBytes[6];
-      Helpers::stringToBytes(Interface::get().getConfig().get().wifi.bssid, ':', bssidBytes, 6, 16);
-      WiFi.begin(Interface::get().getConfig().get().wifi.ssid, Interface::get().getConfig().get().wifi.password, Interface::get().getConfig().get().wifi.channel, bssidBytes);
+    if (connectToSpecificBSSID) {
+      Interface::get().getLogger() << F("↕ Connect to Wi-Fi via configured BSSID...") << endl;      
+      WiFi.begin(Interface::get().getConfig().get().wifi.ssid, Interface::get().getConfig().get().wifi.password, channel, bssidBytes);
     } else {
       Interface::get().getLogger() << F("↕ Connect to Wi-Fi using full scan mode...") << endl;
       WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
@@ -378,6 +412,39 @@ void BootNormal::_onWifiGotIp(const WiFiEventStationModeGotIP& event) {
   Interface::get().event.mask = event.mask;
   Interface::get().event.gateway = event.gw;
   Interface::get().eventHandler(Interface::get().event);
+  if (Interface::get().cache.doCache) {
+    if (String(Interface::get().getConfig().get().connectioncache.ip) != WiFi.localIP().toString()
+    || String(Interface::get().getConfig().get().connectioncache.gw) != WiFi.gatewayIP().toString()
+    || String(Interface::get().getConfig().get().connectioncache.mask) != WiFi.subnetMask().toString()
+    || String(Interface::get().getConfig().get().connectioncache.dns1) != WiFi.dnsIP().toString()
+    || String(Interface::get().getConfig().get().connectioncache.bssid) != WiFi.BSSIDstr()
+    || Interface::get().getConfig().get().connectioncache.channel != WiFi.channel()
+    ) {
+      Interface::get().getLogger() << F("Storing new connection data into cache...") << endl;
+      String newCacheData("{ \"connectioncache\" : { ");
+      newCacheData += "\"bssid\" : \"" + WiFi.BSSIDstr() + "\", ";
+      newCacheData += "\"channel\" : \"" + String(WiFi.channel()) + "\", ";
+      newCacheData += "\"ip\" : \"" + WiFi.localIP().toString() + "\", ";
+      newCacheData += "\"gw\" : \"" + WiFi.gatewayIP().toString() + "\", ";
+      newCacheData += "\"mask\" : \"" + WiFi.subnetMask().toString() + "\", ";
+      newCacheData += "\"dns1\" : \"" + WiFi.dnsIP().toString() + "\" } ";
+      newCacheData += "}";
+      Interface::get().getConfig().patch(newCacheData.c_str());
+    }    
+  } else {
+    // delete the cache
+    if (String(Interface::get().getConfig().get().connectioncache.ip) != ""
+    || String(Interface::get().getConfig().get().connectioncache.gw) != ""
+    || String(Interface::get().getConfig().get().connectioncache.mask) != ""
+    || String(Interface::get().getConfig().get().connectioncache.dns1) != ""
+    || String(Interface::get().getConfig().get().connectioncache.bssid) != ""
+    || Interface::get().getConfig().get().connectioncache.channel != 0
+    ) {
+      Interface::get().getLogger() << F("Delete connection data from cache...") << endl;
+      String newCacheData("{ \"connectioncache\" : { } }");
+      Interface::get().getConfig().patch(newCacheData.c_str());
+    }
+  }
 #if HOMIE_MDNS
   MDNS.begin(Interface::get().getConfig().get().deviceId);
 #endif
@@ -398,6 +465,11 @@ void BootNormal::_onWifiDisconnected(WiFiEvent_t event, WiFiEventInfo_t info) {
   Interface::get().event.wifiReason = info.wifi_sta_disconnected.reason;
   Interface::get().eventHandler(Interface::get().event);
   
+  if (info.wifi_sta_disconnected.reason >= 200) {
+    // wifi_err_reason_t >= 200 are technical wifi issues, so retry with full scan mode
+    Interface::get().cache.useCache = false; 
+  }
+
   _wifiConnect();
 }
 #elif defined(ESP8266)
@@ -425,6 +497,44 @@ void BootNormal::_mqttConnect() {
     _mqttConnectNotified = false;
     Interface::get().getLogger() << F("↕ Attempting to connect to MQTT...") << endl;
     Interface::get().getMqttClient().connect();
+  }
+}
+
+void BootNormal::_updateConnectionCache() {
+  if (Interface::get().cache.doCache) {
+    if (String(Interface::get().getConfig().get().connectioncache.ip) != WiFi.localIP().toString()
+    || String(Interface::get().getConfig().get().connectioncache.gw) != WiFi.gatewayIP().toString()
+    || String(Interface::get().getConfig().get().connectioncache.mask) != WiFi.subnetMask().toString()
+    || String(Interface::get().getConfig().get().connectioncache.dns1) != WiFi.dnsIP().toString()
+    || String(Interface::get().getConfig().get().connectioncache.bssid) != WiFi.BSSIDstr()
+    || Interface::get().getConfig().get().connectioncache.channel != WiFi.channel()
+    ) {
+      Interface::get().getLogger() << F("Storing new connection data into cache...") << endl;
+      String newCacheData("{ \"connectioncache\" : { ");
+      newCacheData += "\"bssid\" : \"" + WiFi.BSSIDstr() + "\", ";
+      newCacheData += "\"channel\" : " + String(WiFi.channel()) + ", ";
+      newCacheData += "\"ip\" : \"" + WiFi.localIP().toString() + "\", ";
+      newCacheData += "\"gw\" : \"" + WiFi.gatewayIP().toString() + "\", ";
+      newCacheData += "\"mask\" : \"" + WiFi.subnetMask().toString() + "\", ";
+      newCacheData += "\"dns1\" : \"" + WiFi.dnsIP().toString() + "\" } ";
+      newCacheData += "}";
+      if (!Interface::get().getConfig().patch(newCacheData.c_str())) {
+        Interface::get().getLogger() << F("✖ Caching of connection data failed!") << endl;
+      };
+    }    
+  } else {
+    // delete the cache
+    if (String(Interface::get().getConfig().get().connectioncache.ip) != ""
+    || String(Interface::get().getConfig().get().connectioncache.gw) != ""
+    || String(Interface::get().getConfig().get().connectioncache.mask) != ""
+    || String(Interface::get().getConfig().get().connectioncache.dns1) != ""
+    || String(Interface::get().getConfig().get().connectioncache.bssid) != ""
+    || Interface::get().getConfig().get().connectioncache.channel != 0
+    ) {
+      Interface::get().getLogger() << F("Delete connection data from cache...") << endl;
+      String newCacheData("{ \"connectioncache\" : { } }");
+      Interface::get().getConfig().patch(newCacheData.c_str());
+    }
   }
 }
 
@@ -502,6 +612,7 @@ void BootNormal::_advertise() {
       break;
     case AdvertisementProgress::GlobalStep::PUB_IMPLEMENTATION_CONFIG:
     {
+      _updateConnectionCache();
       char* safeConfigFile = Interface::get().getConfig().getSafeConfigFile();
       packetId = Interface::get().getMqttClient().publish(_prefixMqttTopic(PSTR("/$implementation/config")), 1, true, safeConfigFile);
       delete safeConfigFile;

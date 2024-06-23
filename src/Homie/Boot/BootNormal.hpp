@@ -148,6 +148,7 @@ class BootNormal : public Boot {
   char* _prefixMqttTopic(PGM_P topic);
   bool _publishOtaStatus(int status, const char* info = nullptr);
   void _endOtaUpdate(bool success, uint8_t update_error = UPDATE_ERROR_OK);
+  void _updateConnectionCache();
 
   // _onMqttMessage Helpers
   void __splitTopic(char* topic);

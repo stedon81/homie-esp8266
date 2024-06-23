@@ -8,6 +8,8 @@ ConfigValidationResult Validation::validateConfig(const JsonObject object) {
   if (!result.valid) return result;
   result = _validateConfigWifi(object);
   if (!result.valid) return result;
+  result = _validateConfigCache(object);
+  if (!result.valid) return result;
   result = _validateConfigMqtt(object);
   if (!result.valid) return result;
   result = _validateConfigOta(object);
@@ -228,6 +230,111 @@ ConfigValidationResult Validation::_validateConfigWifi(const JsonObject object) 
   result.valid = true;
   return result;
 }
+
+
+ConfigValidationResult Validation::_validateConfigCache(const JsonObject object) {
+  ConfigValidationResult result;
+  result.valid = false;
+
+  JsonVariant cache = object["connectioncache"];
+
+  if (!cache.isNull()) {
+    if (!cache.is<JsonObject>()) {
+      result.reason = F("connectioncache is not an object");
+      return result;
+    }
+
+
+    {
+      JsonVariant cacheBssid = cache["bssid"];
+      JsonVariant cacheChannel = cache["channel"];
+
+      if ((cacheBssid.isNull() || cacheChannel.isNull()) != (cacheBssid.isNull() && cacheChannel.isNull())) {
+        result.reason = F("connectioncache.channel_bssid channel and BSSID is required");
+        return result;
+      }
+      if (!cacheBssid.as<const char*>()) {
+        result.reason = F("connectioncache.bssid is not a string");
+        return result;
+      }
+      if (!Helpers::validateMacAddress(cacheBssid.as<const char*>())) {
+        result.reason = F("connectioncache.bssid is not valid mac");
+        return result;
+      }
+      if (!cacheChannel.is<uint16_t>()) {
+        result.reason = F("connectioncache.channel is not an integer");
+        return result;
+      }
+    }
+
+    {
+      JsonVariant cacheIp = cache["ip"];
+      JsonVariant cacheMask = cache["mask"];
+      JsonVariant cacheGw = cache["gw"];
+
+      if ((cacheIp.isNull() || cacheMask.isNull() || cacheGw.isNull()) != (cacheIp.isNull() && cacheMask.isNull() && cacheGw.isNull())) {
+        result.reason = F("connectioncache.staticip ip, gw and mask is required");
+        return result;
+      }
+      if (!cacheIp.as<const char*>()) {
+        result.reason = F("connectioncache.ip is not a string");
+        return result;
+      }
+      if (strlen(cacheIp.as<const char*>()) + 1 > MAX_IP_STRING_LENGTH) {
+        result.reason = F("connectioncache.ip is too long");
+        return result;
+      }
+      if (!Helpers::validateIP(cacheIp.as<const char*>())) {
+        result.reason = F("connectioncache.ip is not valid ip address");
+        return result;
+      }
+      if (!cacheMask.as<const char*>()) {
+        result.reason = F("connectioncache.mask is not a string");
+        return result;
+      }
+      if (strlen(cacheMask.as<const char*>()) + 1 > MAX_IP_STRING_LENGTH) {
+        result.reason = F("connectioncache.mask is too long");
+        return result;
+      }
+      if (!Helpers::validateIP(cacheMask.as<const char*>())) {
+        result.reason = F("connectioncache.mask is not valid mask");
+        return result;
+      }
+      if (!cacheGw.as<const char*>()) {
+        result.reason = F("connectioncache.gw is not a string");
+        return result;
+      }
+      if (strlen(cacheGw.as<const char*>()) + 1 > MAX_IP_STRING_LENGTH) {
+        result.reason = F("connectioncache.gw is too long");
+        return result;
+      }
+      if (!Helpers::validateIP(cacheGw.as<const char*>())) {
+        result.reason = F("connectioncache.gw is not valid gateway address");
+        return result;
+      }
+    }
+
+    {
+      JsonVariant cacheDns1 = cache["dns1"];
+
+      if (!cacheDns1.as<const char*>()) {
+        result.reason = F("connectioncache.dns1 is not a string");
+        return result;
+      }
+      if (strlen(cacheDns1.as<const char*>()) + 1 > MAX_IP_STRING_LENGTH) {
+        result.reason = F("connectioncache.dns1 is too long");
+        return result;
+      }
+      if (!Helpers::validateIP(cacheDns1.as<const char*>())) {
+        result.reason = F("connectioncache.dns1 is not valid dns address");
+        return result;
+      }
+    }
+  }
+  result.valid = true;
+  return result;
+}
+
 
 ConfigValidationResult Validation::_validateConfigMqtt(const JsonObject object) {
   ConfigValidationResult result;

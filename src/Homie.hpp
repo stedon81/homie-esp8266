@@ -45,6 +45,7 @@ class HomieClass {
   HomieClass& setLoggingPrinter(Print* printer);
   HomieClass& disableLedFeedback();
   HomieClass& setLedPin(uint8_t pin, uint8_t on);
+  HomieClass& setConnectionCacheUsage(bool useCache, bool doCache);
   HomieClass& setConfigurationApPassword(const char* password);
   HomieClass& setGlobalInputHandler(const GlobalInputHandler& globalInputHandler);
   HomieClass& setBroadcastHandler(const BroadcastHandler& broadcastHandler);

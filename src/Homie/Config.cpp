@@ -64,6 +64,7 @@ bool Config::load() {
 
   /* Mandatory config items */
   JsonObject reqWifi = parsedJson["wifi"];
+  JsonObject reqCached = parsedJson["connectioncache"];
   JsonObject reqMqtt = parsedJson["mqtt"];
 
   const char* reqName = parsedJson["name"];
@@ -92,6 +93,15 @@ bool Config::load() {
   const char* reqMqttFingerprint = reqMqtt["ssl_fingerprint"] | "";
   const char* reqMqttBaseTopic = reqMqtt["base_topic"] | DEFAULT_MQTT_BASE_TOPIC;
 
+  /* Optional cached connection info */
+  uint16_t reqCachedWifiChannel = reqCached["channel"] | 0;
+  const char* reqCachedWifiBssid = reqCached["bssid"] | "";
+  const char* reqCachedWifiIp = reqCached["ip"] | "";
+  const char* reqCachedWifiMask = reqCached["mask"] | "";
+  const char* reqCachedWifiGw = reqCached["gw"] | "";
+  const char* reqCachedWifiDns1 = reqCached["dns1"] | "";
+
+
   strlcpy(_configStruct.name, reqName, MAX_FRIENDLY_NAME_LENGTH);
   strlcpy(_configStruct.deviceId, reqDeviceId, MAX_DEVICE_ID_LENGTH);
   _configStruct.deviceStatsInterval = regDeviceStatsInterval;
@@ -117,6 +127,12 @@ bool Config::load() {
   _configStruct.mqtt.auth = reqMqttAuth;
   strlcpy(_configStruct.mqtt.username, reqMqttUsername, MAX_MQTT_CREDS_LENGTH);
   strlcpy(_configStruct.mqtt.password, reqMqttPassword, MAX_MQTT_CREDS_LENGTH);
+  strlcpy(_configStruct.connectioncache.bssid, reqCachedWifiBssid, MAX_MAC_STRING_LENGTH + 6);
+  _configStruct.connectioncache.channel = reqCachedWifiChannel;
+  strlcpy(_configStruct.connectioncache.ip, reqCachedWifiIp, MAX_IP_STRING_LENGTH);
+  strlcpy(_configStruct.connectioncache.gw, reqCachedWifiGw, MAX_IP_STRING_LENGTH);
+  strlcpy(_configStruct.connectioncache.mask, reqCachedWifiMask, MAX_IP_STRING_LENGTH);
+  strlcpy(_configStruct.connectioncache.dns1, reqCachedWifiDns1, MAX_IP_STRING_LENGTH);
   _configStruct.ota.enabled = reqOtaEnabled;
 
   /* Parse the settings */
@@ -259,7 +275,7 @@ bool Config::patch(const char* patch) {
 
   write(configObject);
 
-  return true;
+  return load();
 }
 
 void Config::_patchJsonObject(JsonObject object, JsonObject patch) {
@@ -275,6 +291,10 @@ void Config::_patchJsonObject(JsonObject object, JsonObject patch) {
       if (patchElement.isNull()) {
         object.remove(patchItem.key());
       } else {
+        // if (objectElement.isNull()) {
+        //   Interface::get().getLogger() << F("Adding item") << patchItem.key().c_str() << endl; Serial.flush();
+        //   object.createNestedObject(patchItem.key());
+        // }
         // Otherwise replace the object element value with the patch element value
         object[patchItem.key()] = patchElement;
       }

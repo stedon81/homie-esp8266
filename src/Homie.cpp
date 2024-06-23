@@ -218,6 +218,15 @@ HomieClass& HomieClass::setLedPin(uint8_t pin, uint8_t on) {
   return *this;
 }
 
+HomieClass& HomieClass::setConnectionCacheUsage(bool useCache, bool doCache) {
+  _checkBeforeSetup(F("setConnectionCacheUsage"));
+
+  Interface::get().cache.useCache = useCache;
+  Interface::get().cache.doCache = doCache;
+
+  return *this;
+}
+
 HomieClass& HomieClass::setConfigurationApPassword(const char* password) {
   _checkBeforeSetup(F("setConfigurationApPassword"));
 
