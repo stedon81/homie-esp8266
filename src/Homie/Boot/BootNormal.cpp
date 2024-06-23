@@ -116,7 +116,10 @@ void BootNormal::loop() {
   Interface::get().getMqttClient().loop();
   if (_flaggedForReboot && Interface::get().reset.idle) {
     Interface::get().getLogger() << F("Device is idle") << endl;
-
+    Interface::get().getLogger() << F("Shut down gracefully") << endl;
+    Interface::get().getMqttClient().loop();
+    Interface::get().getMqttClient().disconnect();
+    delay(500);
     Interface::get().getLogger() << F("↻ Rebooting...") << endl;
     Serial.flush();
     ESP.restart();
@@ -733,6 +736,10 @@ void BootNormal::_advertise() {
     }
     case AdvertisementProgress::GlobalStep::SUB_IMPLEMENTATION_OTA:
       packetId = Interface::get().getMqttClient().subscribe(_prefixMqttTopic(PSTR("/$implementation/ota/firmware/+")), 1);
+      if (packetId != 0) _advertisementProgress.globalStep = AdvertisementProgress::GlobalStep::SUB_IMPLEMENTATION_REBOOT;
+      break;
+    case AdvertisementProgress::GlobalStep::SUB_IMPLEMENTATION_REBOOT:
+      packetId = Interface::get().getMqttClient().subscribe(_prefixMqttTopic(PSTR("/$implementation/reboot")), 1);
       if (packetId != 0) _advertisementProgress.globalStep = AdvertisementProgress::GlobalStep::SUB_IMPLEMENTATION_RESET;
       break;
     case AdvertisementProgress::GlobalStep::SUB_IMPLEMENTATION_RESET:
@@ -839,15 +846,19 @@ void BootNormal::_onMqttMessage(const espMqttClientTypes::MessageProperties& pro
   if (strcmp(_mqttTopicLevels.get()[0], Interface::get().getConfig().get().deviceId) != 0)
     return;
 
-  // 5. handle reset
+  // 5. handle reboot
+  if (__handleReboot(_mqttTopicCopy.get(), (char*) payload, len, index, total))
+    return;
+
+  // 6. handle reset
   if (__handleResets(_mqttTopicCopy.get(), (char*) payload, len, index, total))
     return;
 
-  // 6. handle config set
+  // 7. handle config set
   if (__handleConfig(_mqttTopicCopy.get(), (char*) payload, len, index, total))
     return;
 
-  // 7. here, we're sure we have a node property
+  // 8. here, we're sure we have a node property
   if (__handleNodeProperty(_mqttTopicCopy.get(), (char*) payload, len, index, total))
     return;
 }
@@ -1097,6 +1108,22 @@ bool HomieInternals::BootNormal::__handleBroadcasts(char * topic, char * payload
       Interface::get().getLogger() << F("  • Level: ") << broadcastLevel << endl;
       Interface::get().getLogger() << F("  • Value: ") << _mqttPayloadBuffer.get() << endl;
     }
+    return true;
+  }
+  return false;
+}
+
+bool HomieInternals::BootNormal::__handleReboot(char * topic, char * payload, size_t len, size_t index, size_t total) {
+  if (
+    _mqttTopicLevelsCount == 3
+    && strcmp_P(_mqttTopicLevels.get()[1], PSTR("$implementation")) == 0
+    && strcmp_P(_mqttTopicLevels.get()[2], PSTR("reboot")) == 0
+    && strcmp_P(_mqttPayloadBuffer.get(), PSTR("true")) == 0
+    ) {
+    Interface::get().getMqttClient().publish(_prefixMqttTopic(PSTR("/$implementation/reboot")), 1, true, "false");
+    Interface::get().getLogger() << F("Flagged for reboot by network") << endl;
+    Interface::get().disable = true;
+    _flaggedForReboot = true;
     return true;
   }
   return false;

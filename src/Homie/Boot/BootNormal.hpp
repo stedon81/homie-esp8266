@@ -68,6 +68,7 @@ class BootNormal : public Boot {
       PUB_IMPLEMENTATION_OTA_ENABLED,
       PUB_NODES,
       SUB_IMPLEMENTATION_OTA,
+      SUB_IMPLEMENTATION_REBOOT,
       SUB_IMPLEMENTATION_RESET,
       SUB_IMPLEMENTATION_CONFIG_SET,
       SUB_SET,
@@ -153,6 +154,7 @@ class BootNormal : public Boot {
   bool __fillPayloadBuffer(char* topic, char* payload, size_t len, size_t index, size_t total);
   bool __handleOTAUpdates(char* topic, char* payload, size_t len, size_t index, size_t total);
   bool __handleBroadcasts(char* topic, char* payload, size_t len, size_t index, size_t total);
+  bool __handleReboot(char* topic, char* payload, size_t len, size_t index, size_t total);
   bool __handleResets(char* topic, char* payload, size_t len, size_t index, size_t total);
   bool __handleConfig(char* topic, char* payload, size_t len, size_t index, size_t total);
   bool __handleNodeProperty(char* topic, char* payload, size_t len, size_t index, size_t total);
