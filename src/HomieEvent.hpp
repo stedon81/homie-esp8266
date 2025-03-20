@@ -5,7 +5,11 @@
 #elif defined(ESP8266)
 #include <ESP8266WiFi.h>
 #endif // ESP32
+#ifdef ESP32
+#include "AsyncMqttClient.h"
+#elif defined(ESP8266)
 #include <espMqttClientAsync.h>
+#endif // ESP32
 
 enum class HomieEventType : uint8_t {
   STANDALONE_MODE = 1,
@@ -32,13 +36,15 @@ struct HomieEvent {
   IPAddress mask;
   IPAddress gateway;
   /* WIFI_DISCONNECTED */
-  #ifdef ESP32
+#ifdef ESP32
   uint8_t wifiReason;
-  #elif defined(ESP8266)
+  /* MQTT_DISCONNECTED */
+  AsyncMqttClientDisconnectReason mqttReason;
+#elif defined(ESP8266)
   WiFiDisconnectReason wifiReason;
-  #endif // ESP32
   /* MQTT_DISCONNECTED */
   espMqttClientTypes::DisconnectReason mqttReason;
+#endif // ESP32
   /* MQTT_PACKET_ACKNOWLEDGED */
   uint16_t packetId;
   /* OTA_PROGRESS */

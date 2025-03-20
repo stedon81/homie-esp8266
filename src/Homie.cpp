@@ -357,8 +357,11 @@ HomieClass& HomieClass::disableResetTrigger() {
 const ConfigStruct& HomieClass::getConfiguration() {
   return Interface::get().getConfig().get();
 }
-
-espMqttClientAsync& HomieClass::getMqttClient() {
+#ifdef ESP32
+  AsyncMqttClient& HomieClass::getMqttClient() {
+#elif defined(ESP8266)
+  espMqttClientAsync& HomieClass::getMqttClient() {
+#endif // ESP32
   return _mqttClient;
 }
 

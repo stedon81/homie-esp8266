@@ -24,8 +24,12 @@
 #endif
 #endif // ESP32
 
-
+#ifdef ESP32
+#include "AsyncMqttClient.h"
+#elif defined(ESP8266)
 #include <espMqttClientAsync.h>
+#endif // ESP32
+
 #include "../../HomieNode.hpp"
 #include "../../HomieRange.hpp"
 #include "../../StreamingOperator.hpp"
@@ -134,15 +138,17 @@ class BootNormal : public Boot {
   #ifdef ESP32
   void _onWifiGotIp(WiFiEvent_t event, WiFiEventInfo_t info);
   void _onWifiDisconnected(WiFiEvent_t event, WiFiEventInfo_t info);
+  void _onMqttDisconnected(AsyncMqttClientDisconnectReason reason);
+  void _onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total);
   #elif defined(ESP8266)
   void _onWifiGotIp(const WiFiEventStationModeGotIP& event);
   void _onWifiDisconnected(const WiFiEventStationModeDisconnected& event);
+  void _onMqttDisconnected(espMqttClientTypes::DisconnectReason reason);
+  void _onMqttMessage(const espMqttClientTypes::MessageProperties& properties, const char* topic, const uint8_t* payload, size_t len, size_t index, size_t total);
   #endif // ESP32
   void _mqttConnect();
   void _advertise();
   void _onMqttConnected();
-  void _onMqttDisconnected(espMqttClientTypes::DisconnectReason reason);
-  void _onMqttMessage(const espMqttClientTypes::MessageProperties& properties, const char* topic, const uint8_t* payload, size_t len, size_t index, size_t total);
   void _onMqttPublish(uint16_t id);
   void _prefixMqttTopic();
   char* _prefixMqttTopic(PGM_P topic);
@@ -152,6 +158,14 @@ class BootNormal : public Boot {
 
   // _onMqttMessage Helpers
   void __splitTopic(char* topic);
+// #ifdef ESP32
+//   bool __fillPayloadBuffer(char* topic, char* payload, const AsyncMqttClientMessageProperties& properties, size_t len, size_t index, size_t total);
+//   bool __handleOTAUpdates(char* topic, char* payload, const AsyncMqttClientMessageProperties& properties, size_t len, size_t index, size_t total);
+//   bool __handleBroadcasts(char* topic, char* payload, const AsyncMqttClientMessageProperties& properties, size_t len, size_t index, size_t total);
+//   bool __handleResets(char* topic, char* payload, const AsyncMqttClientMessageProperties& properties, size_t len, size_t index, size_t total);
+//   bool __handleConfig(char* topic, char* payload, const AsyncMqttClientMessageProperties& properties, size_t len, size_t index, size_t total);
+//   bool __handleNodeProperty(char* topic, char* payload, const AsyncMqttClientMessageProperties& properties, size_t len, size_t index, size_t total);
+// #elif defined(ESP8266)
   bool __fillPayloadBuffer(char* topic, char* payload, size_t len, size_t index, size_t total);
   bool __handleOTAUpdates(char* topic, char* payload, size_t len, size_t index, size_t total);
   bool __handleBroadcasts(char* topic, char* payload, size_t len, size_t index, size_t total);
@@ -159,5 +173,6 @@ class BootNormal : public Boot {
   bool __handleResets(char* topic, char* payload, size_t len, size_t index, size_t total);
   bool __handleConfig(char* topic, char* payload, size_t len, size_t index, size_t total);
   bool __handleNodeProperty(char* topic, char* payload, size_t len, size_t index, size_t total);
+//#endif // ESP32
 };
 }  // namespace HomieInternals

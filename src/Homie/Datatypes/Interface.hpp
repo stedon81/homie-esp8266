@@ -1,6 +1,9 @@
 #pragma once
-
+#if ESP32
+#include "AsyncMqttClient.h"
+#elif defined(ESP8266)
 #include <espMqttClientAsync.h>
+#endif // ESP32
 #include "../Logger.hpp"
 #include "../Blinker.hpp"
 #include "../Constants.hpp"
@@ -75,14 +78,22 @@ class InterfaceData {
   Logger& getLogger() { return *_logger; }
   Blinker& getBlinker() { return *_blinker; }
   Config& getConfig() { return *_config; }
+#ifdef ESP32
+  AsyncMqttClient& getMqttClient() { return *_mqttClient; }
+#elif defined(ESP8266)
   espMqttClientAsync& getMqttClient() { return *_mqttClient; }
+#endif // ESP32  
   SendingPromise& getSendingPromise() { return *_sendingPromise; }
 
  private:
   Logger* _logger;
   Blinker* _blinker;
   Config* _config;
+#ifdef ESP32
+  AsyncMqttClient* _mqttClient;
+#elif defined(ESP8266)
   espMqttClientAsync* _mqttClient;
+#endif // ESP32
   SendingPromise* _sendingPromise;
 };
 

@@ -84,8 +84,9 @@ void BootNormal::setup() {
     Interface::get().getMqttClient().addServerFingerprint((const uint8_t*)Interface::get().getConfig().get().mqtt.server.ssl.fingerprint);
   }
 #endif
-
-  //Interface::get().getMqttClient().setMaxTopicLength(MAX_MQTT_TOPIC_LENGTH);
+#ifdef ESP32
+  Interface::get().getMqttClient().setMaxTopicLength(MAX_MQTT_TOPIC_LENGTH);
+#endif
   _mqttClientId = std::unique_ptr<char[]>(new char[strlen(Interface::get().brand) + 1 + strlen(Interface::get().getConfig().get().deviceId) + 1]);
   strcpy(_mqttClientId.get(), Interface::get().brand);
   strcat_P(_mqttClientId.get(), PSTR("-"));
@@ -113,11 +114,15 @@ void BootNormal::setup() {
 
 void BootNormal::loop() {
   Boot::loop();
+#if defined(ESP8266)
   Interface::get().getMqttClient().loop();
+#endif
   if (_flaggedForReboot && Interface::get().reset.idle) {
     Interface::get().getLogger() << F("Device is idle") << endl;
     Interface::get().getLogger() << F("Shut down gracefully") << endl;
+#if defined(ESP8266)
     Interface::get().getMqttClient().loop();
+#endif
     Interface::get().getMqttClient().disconnect();
     delay(500);
     Interface::get().getLogger() << F("↻ Rebooting...") << endl;
@@ -891,8 +896,11 @@ void BootNormal::_onMqttConnected() {
 
   _advertise();
 }
-
+#ifdef ESP32
+void BootNormal::_onMqttDisconnected(AsyncMqttClientDisconnectReason reason) {
+#elif defined(ESP8266)
 void BootNormal::_onMqttDisconnected(espMqttClientTypes::DisconnectReason reason) {
+#endif
   Interface::get().ready = false;
   _mqttConnectNotified = false;
   _advertisementProgress.done = false;
@@ -924,8 +932,11 @@ void BootNormal::_onMqttDisconnected(espMqttClientTypes::DisconnectReason reason
   }
   _mqttReconnectTimer.activate();
 }
-
+#ifdef ESP32
+void BootNormal::_onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total) {
+#elif defined(ESP8266)
 void BootNormal::_onMqttMessage(const espMqttClientTypes::MessageProperties& properties, const char* topic, const uint8_t* payload, size_t len, size_t index, size_t total) {
+#endif
   if (total == 0) return;  // no empty message possible
 
   if (index == 0) {

@@ -2,7 +2,11 @@
 
 #include "Arduino.h"
 
+#ifdef ESP32
+#include "AsyncMqttClient.h"
+#elif defined(ESP8266)
 #include <espMqttClientAsync.h>
+#endif // ESP32
 #include "Homie/Datatypes/Interface.hpp"
 #include "Homie/Constants.hpp"
 #include "Homie/Limits.hpp"
@@ -63,7 +67,12 @@ class HomieClass {
   static bool isConfigured();
   static bool isConnected();
   static const ConfigStruct& getConfiguration();
+#ifdef ESP32
+  AsyncMqttClient& getMqttClient();
+#elif defined(ESP8266)
   espMqttClientAsync& getMqttClient();
+#endif // ESP32
+  
   Logger& getLogger();
   static void prepareToSleep();
   #ifdef ESP32
@@ -88,7 +97,11 @@ class HomieClass {
   Logger _logger;
   Blinker _blinker;
   Config _config;
+#ifdef ESP32
+  AsyncMqttClient _mqttClient;
+#elif defined(ESP8266)
   espMqttClientAsync _mqttClient;
+#endif // ESP32
 
   void _checkBeforeSetup(const __FlashStringHelper* functionName) const;
 

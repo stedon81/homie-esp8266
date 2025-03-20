@@ -33,7 +33,12 @@
     },
     {
       "owner": "ottowinter",
-      "name": "ESPAsyncWebServer-esphome"
+      "name": "ESPAsyncWebServer-esphome",
+      "platforms": ["espressif8266"]
+    },
+    {
+      "name": "ESP Async WebServer",
+      "platforms": ["espressif32"]
     },
     {
       "owner": "bertmelis",
@@ -42,9 +47,13 @@
       "platforms": ["espressif8266"]
     },
     {
+      "name": "AsyncMqttClient",
+      "version": "^0.8.0",
+      "platforms": ["espressif32"]
+    },    {
       "name": "espMqttClient",
       "version": "https://github.com/stedon81/espMqttClient#main",
-      "platforms": ["espressif32"]
+      "platforms": ["none"]
     }
   ],
   "export": {
