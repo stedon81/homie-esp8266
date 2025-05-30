@@ -376,8 +376,12 @@ void BootNormal::_wifiConnect() {
       WiFi.begin(Interface::get().getConfig().get().wifi.ssid, Interface::get().getConfig().get().wifi.password, channel, bssidBytes);
     } else {
       Interface::get().getLogger() << F("↕ Connect to Wi-Fi using full scan mode...") << endl;
+      #ifdef ESP32
       WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
       WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
+      #elif defined(ESP8266)
+      // not implemented
+      #endif // ESP32
       WiFi.begin(Interface::get().getConfig().get().wifi.ssid, Interface::get().getConfig().get().wifi.password);
     }
 
