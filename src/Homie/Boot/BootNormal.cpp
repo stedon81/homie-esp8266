@@ -473,7 +473,14 @@ void BootNormal::_onWifiDisconnected(WiFiEvent_t event, WiFiEventInfo_t info) {
   Interface::get().event.type = HomieEventType::WIFI_DISCONNECTED;
   Interface::get().event.wifiReason = info.wifi_sta_disconnected.reason;
   Interface::get().eventHandler(Interface::get().event);
-  
+
+  if (Interface::get().flaggedForSleep) {
+      Interface::get().getLogger() << F("Triggering READY_TO_SLEEP event...") << endl;
+      Interface::get().event.type = HomieEventType::READY_TO_SLEEP;
+      Interface::get().eventHandler(Interface::get().event);
+      return;
+  }
+
   if (info.wifi_sta_disconnected.reason >= 200) {
     // wifi_err_reason_t >= 200 are technical wifi issues, so retry with full scan mode
     Interface::get().cache.useCache = false; 
@@ -491,6 +498,13 @@ void BootNormal::_onWifiDisconnected(const WiFiEventStationModeDisconnected& eve
   Interface::get().event.type = HomieEventType::WIFI_DISCONNECTED;
   Interface::get().event.wifiReason = event.reason;
   Interface::get().eventHandler(Interface::get().event);
+
+    if (Interface::get().flaggedForSleep) {
+      Interface::get().getLogger() << F("Triggering READY_TO_SLEEP event...") << endl;
+      Interface::get().event.type = HomieEventType::READY_TO_SLEEP;
+      Interface::get().eventHandler(Interface::get().event);
+      return;
+  }
 
   _wifiConnect();
 }
@@ -925,9 +939,8 @@ void BootNormal::_onMqttDisconnected(espMqttClientTypes::DisconnectReason reason
 
     if (Interface::get().flaggedForSleep) {
       _mqttOfflineMessageId = 0;
-      Interface::get().getLogger() << F("Triggering READY_TO_SLEEP event...") << endl;
-      Interface::get().event.type = HomieEventType::READY_TO_SLEEP;
-      Interface::get().eventHandler(Interface::get().event);
+      Interface::get().getLogger() << F("MQTT disconnected in preparation to sleep. Disconnecting WiFi...") << endl;
+      WiFi.disconnect();
 
       return;
     }
