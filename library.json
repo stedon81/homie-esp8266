@@ -48,7 +48,7 @@
     },
     {
       "name": "AsyncMqttClient",
-      "version": "^0.8.0",
+      "version": "https://github.com/stedon81/async-mqtt-client#develop",
       "platforms": ["espressif32"]
     },    {
       "name": "espMqttClient",
